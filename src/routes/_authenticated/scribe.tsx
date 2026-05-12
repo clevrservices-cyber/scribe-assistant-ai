@@ -103,7 +103,7 @@ function ScribePage() {
         reader.readAsDataURL(blob);
       });
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-        body: { audio: base64, mimeType: blob.type || "audio/webm" },
+        body: { audioBase64: base64, mimeType: blob.type || "audio/webm" },
       });
       if (error) throw error;
       const text = (data as any)?.transcript ?? "";

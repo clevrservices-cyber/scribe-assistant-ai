@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid } from "lucide-react";
+import { Home, Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid, FilePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecorder } from "@/lib/recorder-context";
 import { useScribeCtx } from "@/lib/scribe-context";
@@ -25,15 +25,8 @@ export function AppFooter() {
 
   type Tab =
     | { kind: "link"; to: "/scribe" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
+    | { kind: "action"; onClick: () => void; icon: typeof Home; label: string }
     | { kind: "spacer" };
-
-  const tabs: Tab[] = [
-    { kind: "link", to: "/scribe", icon: Home, label: t("Home", "หน้าแรก") },
-    { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
-    { kind: "spacer" },
-    { kind: "link", to: "/templates", icon: LayoutGrid, label: t("Template", "เทมเพลต") },
-    { kind: "link", to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
-  ];
 
   const goNew = () => {
     if (loc.pathname === "/scribe") {
@@ -43,6 +36,14 @@ export function AppFooter() {
       navigate({ to: "/scribe" });
     }
   };
+
+  const tabs: Tab[] = [
+    { kind: "link", to: "/scribe", icon: Home, label: t("Home", "หน้าแรก") },
+    { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
+    { kind: "spacer" },
+    { kind: "action", onClick: goNew, icon: FilePlus, label: t("New", "ใหม่") },
+    { kind: "link", to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
+  ];
 
   return (
     <>

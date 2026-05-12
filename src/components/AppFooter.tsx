@@ -24,11 +24,11 @@ export function AppFooter() {
   const [confirm, setConfirm] = useState(false);
 
   type Tab =
-    | { kind: "link"; to: "/home" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
+    | { kind: "link"; to: "/scribe" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
     | { kind: "spacer" };
 
   const tabs: Tab[] = [
-    { kind: "link", to: "/home", icon: Home, label: t("Home", "หน้าแรก") },
+    { kind: "link", to: "/scribe", icon: Home, label: t("Home", "หน้าแรก") },
     { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
     { kind: "spacer" },
     { kind: "link", to: "/templates", icon: LayoutGrid, label: t("Template", "เทมเพลต") },

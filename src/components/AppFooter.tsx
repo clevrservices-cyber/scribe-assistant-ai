@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid } from "lucide-react";
+import { Home, Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecorder } from "@/lib/recorder-context";
 import { useScribeCtx } from "@/lib/scribe-context";
@@ -23,12 +23,18 @@ export function AppFooter() {
   const { t } = useLang();
   const [confirm, setConfirm] = useState(false);
 
-  const tabs = [
-    { to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
-    { to: "/scribe", icon: Calendar, label: t("New", "ใหม่"), guard: true },
-    { to: "/templates", icon: LayoutGrid, label: t("Template", "เทมเพลต") },
-    { to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
-  ] as const;
+  type Tab =
+    | { kind: "link"; to: "/home" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
+    | { kind: "guard"; icon: typeof Home; label: string }
+    | { kind: "spacer" };
+
+  const tabs: Tab[] = [
+    { kind: "link", to: "/home", icon: Home, label: t("Home", "หน้าแรก") },
+    { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
+    { kind: "spacer" },
+    { kind: "link", to: "/templates", icon: LayoutGrid, label: t("Template", "เทมเพลต") },
+    { kind: "link", to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
+  ];
 
   const goNew = () => {
     if (loc.pathname === "/scribe") {
@@ -48,13 +54,14 @@ export function AppFooter() {
         <div className="mx-auto max-w-2xl relative h-20 px-4">
           <button
             onClick={() => {
-              if (loc.pathname !== "/scribe") navigate({ to: "/scribe" });
+              goNew();
+              if (loc.pathname === "/scribe" && hasUnsavedDoc) return;
               toggleRecording();
             }}
             aria-label={isRecording ? t("Stop recording", "หยุดบันทึก") : t("Start recording", "เริ่มบันทึก")}
             disabled={!available}
             className={cn(
-              "absolute left-1/2 -translate-x-1/2 -top-7 size-16 rounded-full grid place-items-center text-white transition-transform active:scale-95 shadow-fab",
+              "absolute left-1/2 -translate-x-1/2 -top-7 size-16 rounded-full grid place-items-center text-white transition-transform active:scale-95 shadow-fab z-10",
               isRecording ? "bg-destructive pulse-rec" : "bg-gradient-primary",
               !available && "opacity-50 cursor-not-allowed",
             )}
@@ -62,33 +69,28 @@ export function AppFooter() {
             {isRecording ? <Square className="size-6 fill-white" /> : <Mic className="size-7" />}
           </button>
 
-          <ul className="grid grid-cols-4 h-full items-center text-xs">
+          <ul className="grid grid-cols-5 h-full items-center text-xs">
             {tabs.map((tab, i) => {
-              const active = loc.pathname === tab.to;
+              if (tab.kind === "spacer") {
+                return <li key={`sp-${i}`} aria-hidden className="opacity-0" />;
+              }
+              const cls = cn(
+                "flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors",
+                "link" === tab.kind && loc.pathname === tab.to
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground",
+              );
               const inner = (
                 <>
                   <tab.icon className="size-5" />
                   <span className="text-[10px] font-medium">{tab.label}</span>
                 </>
               );
-              const cls = cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors",
-                active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-              );
               return (
-                <li
-                  key={tab.to}
-                  className={cn("flex justify-center", i === 1 && "pr-8", i === 2 && "pl-8")}
-                >
-                  {"guard" in tab && tab.guard ? (
-                    <button onClick={goNew} className={cls}>
-                      {inner}
-                    </button>
-                  ) : (
-                    <Link to={tab.to} className={cls}>
-                      {inner}
-                    </Link>
-                  )}
+                <li key={`tab-${i}`} className="flex justify-center">
+                  <Link to={tab.to} className={cls}>
+                    {inner}
+                  </Link>
                 </li>
               );
             })}

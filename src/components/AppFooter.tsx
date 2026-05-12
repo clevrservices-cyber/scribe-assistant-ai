@@ -24,7 +24,7 @@ export function AppFooter() {
         {/* Central record FAB */}
         <button
           onClick={() => {
-            if (loc.pathname !== "/") navigate({ to: "/" });
+            if (loc.pathname !== "/scribe") navigate({ to: "/scribe" });
             toggleRecording();
           }}
           aria-label={isRecording ? "Stop recording" : "Start recording"}

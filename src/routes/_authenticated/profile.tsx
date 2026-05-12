@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -15,12 +22,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Pencil, LogOut } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/profile")({ component: ProfilePage });
 
 function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { lang, setLang, t } = useLang();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -55,7 +64,7 @@ function ProfilePage() {
       .from("profiles")
       .upsert({ id: user.id, full_name: fullName, phone, email });
     if (error) toast.error(error.message);
-    else toast.success("Profile saved");
+    else toast.success(t("Profile saved", "บันทึกโปรไฟล์แล้ว"));
   };
 
   const onAvatar = async (file: File) => {
@@ -66,7 +75,7 @@ function ProfilePage() {
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     setAvatarUrl(data.publicUrl);
     await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
-    toast.success("Photo updated");
+    toast.success(t("Photo updated", "อัปเดตรูปแล้ว"));
   };
 
   const changePassword = async () => {
@@ -75,11 +84,11 @@ function ProfilePage() {
       email: user.email,
       password: oldPw,
     });
-    if (signinErr) return toast.error("Old password incorrect");
+    if (signinErr) return toast.error(t("Old password incorrect", "รหัสผ่านเดิมไม่ถูกต้อง"));
     const { error } = await supabase.auth.updateUser({ password: newPw });
     if (error) toast.error(error.message);
     else {
-      toast.success("Password updated");
+      toast.success(t("Password updated", "อัปเดตรหัสผ่านแล้ว"));
       setPwOpen(false);
       setOldPw("");
       setNewPw("");
@@ -92,12 +101,12 @@ function ProfilePage() {
       redirectTo: window.location.origin + "/login",
     });
     if (error) toast.error(error.message);
-    else toast.success("Reset email sent");
+    else toast.success(t("Reset email sent", "ส่งอีเมลรีเซ็ตแล้ว"));
   };
 
   return (
     <div className="space-y-5">
-      <h2 className="font-display text-xl font-bold">Profile</h2>
+      <h2 className="font-display text-xl font-bold">{t("Profile", "โปรไฟล์")}</h2>
 
       <Card className="p-5 flex items-center gap-4">
         <button
@@ -123,75 +132,90 @@ function ProfilePage() {
           onChange={(e) => e.target.files?.[0] && onAvatar(e.target.files[0])}
         />
         <div>
-          <p className="font-semibold">{fullName || "Set your name"}</p>
+          <p className="font-semibold">{fullName || t("Set your name", "ตั้งชื่อของคุณ")}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
         </div>
       </Card>
 
       <Card className="p-5 space-y-4">
         <div className="space-y-2">
-          <Label>Profile name</Label>
+          <Label>{t("Profile name", "ชื่อโปรไฟล์")}</Label>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Email address</Label>
+          <Label>{t("Email address", "ที่อยู่อีเมล")}</Label>
           <Input value={email} disabled />
         </div>
         <div className="space-y-2">
-          <Label>Phone number</Label>
+          <Label>{t("Phone number", "เบอร์โทรศัพท์")}</Label>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>{t("Language", "ภาษา")}</Label>
+          <Select value={lang} onValueChange={(v) => setLang(v as "en" | "th")}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="th">ไทย</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={() => setPwOpen(true)}>
-            Change login code
+            {t("Change login code", "เปลี่ยนรหัสเข้าสู่ระบบ")}
           </Button>
           <Button variant="ghost" onClick={resetByEmail}>
-            Forgot?
+            {t("Forgot?", "ลืม?")}
           </Button>
         </div>
       </Card>
 
       <div className="flex gap-3">
         <Button onClick={save} className="flex-1 bg-gradient-primary">
-          Save changes
+          {t("Save changes", "บันทึกการเปลี่ยนแปลง")}
         </Button>
         <Button variant="outline" className="flex-1" onClick={() => navigate({ to: "/scribe" })}>
-          Cancel
+          {t("Cancel", "ยกเลิก")}
         </Button>
       </div>
 
       <Button
-        variant="ghost"
-        className="w-full text-destructive"
+        variant="destructive"
+        className="w-full"
         onClick={async () => {
           await supabase.auth.signOut();
           navigate({ to: "/login" });
         }}
       >
-        <LogOut className="size-4 mr-2" /> Log out
+        <LogOut className="size-4 mr-2" /> {t("Log out", "ออกจากระบบ")}
       </Button>
 
       <Dialog open={pwOpen} onOpenChange={setPwOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Change password</DialogTitle>
-            <DialogDescription>Enter your current and new password.</DialogDescription>
+            <DialogTitle>{t("Change password", "เปลี่ยนรหัสผ่าน")}</DialogTitle>
+            <DialogDescription>
+              {t("Enter your current and new password.", "กรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่")}
+            </DialogDescription>
           </DialogHeader>
           <Input
             type="password"
-            placeholder="Current password"
+            placeholder={t("Current password", "รหัสผ่านปัจจุบัน")}
             value={oldPw}
             onChange={(e) => setOldPw(e.target.value)}
           />
           <Input
             type="password"
-            placeholder="New password"
+            placeholder={t("New password", "รหัสผ่านใหม่")}
             value={newPw}
             onChange={(e) => setNewPw(e.target.value)}
           />
           <Button onClick={changePassword} className="w-full bg-gradient-primary">
-            Update password
+            {t("Update password", "อัปเดตรหัสผ่าน")}
           </Button>
         </DialogContent>
       </Dialog>

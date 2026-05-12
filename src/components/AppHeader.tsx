@@ -27,7 +27,7 @@ export function AppHeader() {
         </button>
 
         <h1 className="flex-1 text-center font-display font-semibold text-base sm:text-lg tracking-tight">
-          {t("Medical Scribe Generator", "เครื่องสร้างบันทึกทางการแพทย์")}
+          Scribe Mate
         </h1>
 
         <Link

@@ -396,15 +396,6 @@ function ScribePage() {
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="codes">{t("Medical codes (ICD-10 / CPT)", "รหัสทางการแพทย์ (ICD-10 / CPT)")}</Label>
-            <Input
-              id="codes"
-              value={codes}
-              onChange={(e) => setCodes(e.target.value)}
-              placeholder="e.g. J45.909, 99213"
-            />
-          </div>
         </Card>
       </section>
 
@@ -436,7 +427,7 @@ function ScribePage() {
           onChange={(e) => setTranscript(e.target.value)}
           placeholder={recordingHint}
           rows={6}
-          className="resize-none"
+          className="resize-none bg-white text-slate-900 placeholder:text-slate-400"
         />
         <p className="text-xs text-muted-foreground mt-1">{recordingHint}</p>
 

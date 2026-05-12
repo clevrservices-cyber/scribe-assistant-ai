@@ -74,7 +74,8 @@ function LoginPage() {
         <div className="size-16 grid place-items-center rounded-2xl bg-white/15 backdrop-blur mb-6">
           <Stethoscope className="size-8" />
         </div>
-        <h1 className="text-3xl font-display font-bold text-center">Medical Scribe Generator</h1>
+        <h1 className="text-3xl font-display font-bold text-center">Scribe Mate</h1>
+        <p className="mt-1 text-lg font-display font-medium text-center text-white/90">Medical Scribe Generator</p>
         <p className="mt-2 text-white/80 text-center max-w-xs text-sm">
           Specialised clinical documentation, on a single platform — accessible anywhere.
         </p>

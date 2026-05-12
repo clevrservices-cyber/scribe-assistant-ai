@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Info, Sparkles } from "lucide-react";
+import { Info, Sparkles, LayoutGrid } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,14 @@ export function AppHeader() {
           className="size-9 grid place-items-center rounded-full bg-gradient-primary text-white shadow-soft"
         >
           <Sparkles className="size-4" />
+        </Link>
+
+        <Link
+          to="/templates"
+          aria-label={t("Templates", "เทมเพลต")}
+          className="size-9 grid place-items-center rounded-full hover:bg-muted text-muted-foreground"
+        >
+          <LayoutGrid className="size-5" />
         </Link>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid } from "lucide-react";
+import { Home, Calendar, Settings, FolderOpen, Mic, Square, LayoutGrid, FilePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecorder } from "@/lib/recorder-context";
 import { useScribeCtx } from "@/lib/scribe-context";
@@ -25,15 +25,8 @@ export function AppFooter() {
 
   type Tab =
     | { kind: "link"; to: "/scribe" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
+    | { kind: "action"; onClick: () => void; icon: typeof Home; label: string }
     | { kind: "spacer" };
-
-  const tabs: Tab[] = [
-    { kind: "link", to: "/scribe", icon: Home, label: t("Home", "หน้าแรก") },
-    { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
-    { kind: "spacer" },
-    { kind: "link", to: "/templates", icon: LayoutGrid, label: t("Template", "เทมเพลต") },
-    { kind: "link", to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
-  ];
 
   const goNew = () => {
     if (loc.pathname === "/scribe") {
@@ -43,6 +36,14 @@ export function AppFooter() {
       navigate({ to: "/scribe" });
     }
   };
+
+  const tabs: Tab[] = [
+    { kind: "link", to: "/scribe", icon: Home, label: t("Home", "หน้าแรก") },
+    { kind: "link", to: "/saved", icon: FolderOpen, label: t("Saved", "บันทึกแล้ว") },
+    { kind: "spacer" },
+    { kind: "action", onClick: goNew, icon: FilePlus, label: t("New", "ใหม่") },
+    { kind: "link", to: "/profile", icon: Settings, label: t("Profile", "โปรไฟล์") },
+  ];
 
   return (
     <>
@@ -73,17 +74,24 @@ export function AppFooter() {
               if (tab.kind === "spacer") {
                 return <li key={`sp-${i}`} aria-hidden className="opacity-0" />;
               }
-              const active = loc.pathname === tab.to;
+              const active = tab.kind === "link" && loc.pathname === tab.to;
               const cls = cn(
                 "flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               );
               return (
                 <li key={`tab-${i}`} className="flex justify-center">
-                  <Link to={tab.to} className={cls}>
-                    <tab.icon className="size-5" />
-                    <span className="text-[10px] font-medium">{tab.label}</span>
-                  </Link>
+                  {tab.kind === "link" ? (
+                    <Link to={tab.to} className={cls}>
+                      <tab.icon className="size-5" />
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                    </Link>
+                  ) : (
+                    <button onClick={tab.onClick} className={cls}>
+                      <tab.icon className="size-5" />
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                    </button>
+                  )}
                 </li>
               );
             })}

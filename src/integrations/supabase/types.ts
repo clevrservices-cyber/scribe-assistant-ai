@@ -14,7 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          created_at: string
+          family_name: string
+          first_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          family_name: string
+          first_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          family_name?: string
+          first_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scribes: {
+        Row: {
+          audio_path: string | null
+          created_at: string
+          encounter_date: string | null
+          encounter_time: string | null
+          generated_document: string | null
+          id: string
+          medical_codes: string | null
+          patient_family_name: string | null
+          patient_first_name: string | null
+          patient_id: string | null
+          recipient_email: string | null
+          scribe_type: string
+          transcript: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_path?: string | null
+          created_at?: string
+          encounter_date?: string | null
+          encounter_time?: string | null
+          generated_document?: string | null
+          id?: string
+          medical_codes?: string | null
+          patient_family_name?: string | null
+          patient_first_name?: string | null
+          patient_id?: string | null
+          recipient_email?: string | null
+          scribe_type: string
+          transcript?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_path?: string | null
+          created_at?: string
+          encounter_date?: string | null
+          encounter_time?: string | null
+          generated_document?: string | null
+          id?: string
+          medical_codes?: string | null
+          patient_family_name?: string | null
+          patient_first_name?: string | null
+          patient_id?: string | null
+          recipient_email?: string | null
+          scribe_type?: string
+          transcript?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scribes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

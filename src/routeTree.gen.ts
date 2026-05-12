@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedScribeRouteImport } from './routes/_authenticated/scribe'
 import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedAiAssistantRouteImport } from './routes/_authenticated/ai-assistant'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedScribeRoute = AuthenticatedScribeRouteImport.update({
+  id: '/scribe',
+  path: '/scribe',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
   id: '/saved',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
+  '/scribe': typeof AuthenticatedScribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
+  '/scribe': typeof AuthenticatedScribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,12 +77,19 @@ export interface FileRoutesById {
   '/_authenticated/ai-assistant': typeof AuthenticatedAiAssistantRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
+  '/_authenticated/scribe': typeof AuthenticatedScribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/ai-assistant' | '/profile' | '/saved'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/ai-assistant'
+    | '/profile'
+    | '/saved'
+    | '/scribe'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/ai-assistant' | '/profile' | '/saved'
+  to: '/' | '/login' | '/ai-assistant' | '/profile' | '/saved' | '/scribe'
   id:
     | '__root__'
     | '/'
@@ -83,6 +98,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ai-assistant'
     | '/_authenticated/profile'
     | '/_authenticated/saved'
+    | '/_authenticated/scribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -114,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/scribe': {
+      id: '/_authenticated/scribe'
+      path: '/scribe'
+      fullPath: '/scribe'
+      preLoaderRoute: typeof AuthenticatedScribeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/saved': {
       id: '/_authenticated/saved'
       path: '/saved'
@@ -142,12 +165,14 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAiAssistantRoute: typeof AuthenticatedAiAssistantRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
+  AuthenticatedScribeRoute: typeof AuthenticatedScribeRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAiAssistantRoute: AuthenticatedAiAssistantRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
+  AuthenticatedScribeRoute: AuthenticatedScribeRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -162,3 +187,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

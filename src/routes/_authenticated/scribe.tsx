@@ -242,9 +242,9 @@ function ScribePage() {
       setSending(true);
       const { error } = await supabase.functions.invoke("send-scribe-email", {
         body: {
-          to: recipient,
+          recipientEmail: recipient,
           subject: `${scribeType} — ${familyName} ${firstName}`.trim(),
-          document,
+          documentText: document,
           patientName: `${familyName} ${firstName}`.trim(),
         },
       });

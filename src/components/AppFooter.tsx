@@ -10,7 +10,7 @@ export function AppFooter() {
 
   const tabs = [
     { to: "/saved", icon: FolderOpen, label: "Saved" },
-    { to: "/", icon: Calendar, label: "New" },
+    { to: "/scribe", icon: Calendar, label: "New" },
     { to: "/ai-assistant", icon: Bell, label: "AI" },
     { to: "/profile", icon: Settings, label: "Profile" },
   ] as const;

@@ -25,7 +25,6 @@ export function AppFooter() {
 
   type Tab =
     | { kind: "link"; to: "/home" | "/saved" | "/templates" | "/profile"; icon: typeof Home; label: string }
-    | { kind: "guard"; icon: typeof Home; label: string }
     | { kind: "spacer" };
 
   const tabs: Tab[] = [
@@ -74,22 +73,16 @@ export function AppFooter() {
               if (tab.kind === "spacer") {
                 return <li key={`sp-${i}`} aria-hidden className="opacity-0" />;
               }
+              const active = loc.pathname === tab.to;
               const cls = cn(
                 "flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors",
-                "link" === tab.kind && loc.pathname === tab.to
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              );
-              const inner = (
-                <>
-                  <tab.icon className="size-5" />
-                  <span className="text-[10px] font-medium">{tab.label}</span>
-                </>
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               );
               return (
                 <li key={`tab-${i}`} className="flex justify-center">
                   <Link to={tab.to} className={cls}>
-                    {inner}
+                    <tab.icon className="size-5" />
+                    <span className="text-[10px] font-medium">{tab.label}</span>
                   </Link>
                 </li>
               );

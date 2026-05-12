@@ -74,17 +74,24 @@ export function AppFooter() {
               if (tab.kind === "spacer") {
                 return <li key={`sp-${i}`} aria-hidden className="opacity-0" />;
               }
-              const active = loc.pathname === tab.to;
+              const active = tab.kind === "link" && loc.pathname === tab.to;
               const cls = cn(
                 "flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               );
               return (
                 <li key={`tab-${i}`} className="flex justify-center">
-                  <Link to={tab.to} className={cls}>
-                    <tab.icon className="size-5" />
-                    <span className="text-[10px] font-medium">{tab.label}</span>
-                  </Link>
+                  {tab.kind === "link" ? (
+                    <Link to={tab.to} className={cls}>
+                      <tab.icon className="size-5" />
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                    </Link>
+                  ) : (
+                    <button onClick={tab.onClick} className={cls}>
+                      <tab.icon className="size-5" />
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                    </button>
+                  )}
                 </li>
               );
             })}

@@ -8,6 +8,7 @@ import {
   FileText,
   Send,
   Volume2,
+  VolumeX,
   Copy,
   Save,
   Trash2,
@@ -41,6 +42,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useRecorder } from "@/lib/recorder-context";
+import { useScribeCtx } from "@/lib/scribe-context";
+import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/scribe")({ component: ScribePage });
 
@@ -59,6 +62,8 @@ const SCRIBE_TYPES = [
 function ScribePage() {
   const { user } = useAuth();
   const { isRecording, registerHandler } = useRecorder();
+  const { setHasUnsavedDoc, registerReset, registerSave } = useScribeCtx();
+  const { t } = useLang();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [familyName, setFamilyName] = useState("");
@@ -78,6 +83,7 @@ function ScribePage() {
   const [emailOpen, setEmailOpen] = useState(false);
   const [recipient, setRecipient] = useState("");
   const [sending, setSending] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   // Receive recorded audio from FAB
   useEffect(() => {
@@ -108,9 +114,9 @@ function ScribePage() {
       if (error) throw error;
       const text = (data as any)?.transcript ?? "";
       setTranscript((prev) => (prev ? prev + "\n" + text : text));
-      toast.success("Transcription ready");
+      toast.success(t("Transcription ready", "ถอดเสียงเสร็จแล้ว"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Transcription failed");
+      toast.error(e instanceof Error ? e.message : t("Transcription failed", "ถอดเสียงล้มเหลว"));
     } finally {
       setTranscribing(false);
     }
@@ -124,7 +130,7 @@ function ScribePage() {
 
   async function generate() {
     if (!transcript.trim()) {
-      toast.error("Add or record a transcript first");
+      toast.error(t("Add or record a transcript first", "เพิ่มหรือบันทึกข้อความถอดก่อน"));
       return;
     }
     try {
@@ -142,9 +148,9 @@ function ScribePage() {
       });
       if (error) throw error;
       setDocument((data as any)?.document ?? "");
-      toast.success("Document generated");
+      toast.success(t("Document generated", "สร้างเอกสารแล้ว"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
+      toast.error(e instanceof Error ? e.message : t("Generation failed", "การสร้างล้มเหลว"));
     } finally {
       setGenerating(false);
     }
@@ -153,7 +159,7 @@ function ScribePage() {
   async function save() {
     if (!user) return;
     if (!document.trim()) {
-      toast.error("Generate a document first");
+      toast.error(t("Generate a document first", "สร้างเอกสารก่อน"));
       return;
     }
     try {
@@ -167,7 +173,6 @@ function ScribePage() {
         if (upErr) throw upErr;
         audioPath = path;
       }
-      // Upsert patient
       let patientId: string | null = null;
       if (familyName || firstName) {
         const { data: pat } = await supabase
@@ -195,9 +200,10 @@ function ScribePage() {
         audio_path: audioPath,
       });
       if (error) throw error;
-      toast.success("Scribe saved");
+      setHasUnsavedDoc(false);
+      toast.success(t("Scribe saved", "บันทึกแล้ว"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : t("Save failed", "บันทึกล้มเหลว"));
     } finally {
       setSaving(false);
     }
@@ -205,14 +211,22 @@ function ScribePage() {
 
   function copyDoc() {
     navigator.clipboard.writeText(document);
-    toast.success("Copied to clipboard");
+    toast.success(t("Copied to clipboard", "คัดลอกแล้ว"));
   }
 
-  function speakDoc() {
+  function toggleSpeak() {
     if (!document) return;
+    if (speaking) {
+      speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
     const u = new SpeechSynthesisUtterance(document.replace(/[*#_`>-]/g, ""));
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
+    setSpeaking(true);
   }
 
   function downloadDoc() {
@@ -226,6 +240,8 @@ function ScribePage() {
   }
 
   function reset() {
+    speechSynthesis.cancel();
+    setSpeaking(false);
     setFamilyName("");
     setFirstName("");
     setCodes("");
@@ -234,7 +250,30 @@ function ScribePage() {
     setAudioBlob(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
+    setHasUnsavedDoc(false);
   }
+
+  // Track unsaved + register reset/save callbacks for footer guard
+  useEffect(() => {
+    setHasUnsavedDoc(!!document.trim());
+  }, [document, setHasUnsavedDoc]);
+
+  useEffect(() => {
+    registerReset(reset);
+    registerSave(save);
+    return () => {
+      registerReset(null);
+      registerSave(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [document, transcript, familyName, firstName, codes, date, time, audioBlob, scribeType, audioUrl]);
+
+  // Stop any speech when navigating away
+  useEffect(() => {
+    return () => {
+      speechSynthesis.cancel();
+    };
+  }, []);
 
   async function sendEmail() {
     if (!recipient || !document) return;
@@ -249,31 +288,38 @@ function ScribePage() {
         },
       });
       if (error) throw error;
-      toast.success("Email sent");
+      toast.success(t("Email sent", "ส่งอีเมลแล้ว"));
       setEmailOpen(false);
       setRecipient("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Email failed");
+      toast.error(e instanceof Error ? e.message : t("Email failed", "ส่งอีเมลล้มเหลว"));
     } finally {
       setSending(false);
     }
   }
 
   const recordingHint = useMemo(() => {
-    if (isRecording) return "Recording… tap the red square in the footer to stop.";
-    if (transcribing) return "Transcribing audio…";
-    return "Tap the mic in the footer to record, or upload a file.";
-  }, [isRecording, transcribing]);
+    if (isRecording)
+      return t(
+        "Recording… tap the red square in the footer to stop.",
+        "กำลังบันทึก… แตะรูปสี่เหลี่ยมสีแดงด้านล่างเพื่อหยุด",
+      );
+    if (transcribing) return t("Transcribing audio…", "กำลังถอดเสียง…");
+    return t(
+      "Tap the mic in the footer to record, or upload a file.",
+      "แตะไมโครโฟนด้านล่างเพื่อบันทึก หรืออัปโหลดไฟล์",
+    );
+  }, [isRecording, transcribing, t]);
 
   return (
     <div className="space-y-5">
       <section>
-        <h2 className="font-display text-xl font-semibold mb-3">New Scribe</h2>
+        <h2 className="font-display text-xl font-semibold mb-3">{t("New Scribe", "บันทึกใหม่")}</h2>
 
         <Card className="p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="family">Family name</Label>
+              <Label htmlFor="family">{t("Family name", "นามสกุล")}</Label>
               <Input
                 id="family"
                 value={familyName}
@@ -282,7 +328,7 @@ function ScribePage() {
               />
             </div>
             <div>
-              <Label htmlFor="first">First name</Label>
+              <Label htmlFor="first">{t("First name", "ชื่อ")}</Label>
               <Input
                 id="first"
                 value={firstName}
@@ -293,15 +339,15 @@ function ScribePage() {
           </div>
 
           <div>
-            <Label>Scribe type</Label>
+            <Label>{t("Scribe type", "ประเภทบันทึก")}</Label>
             <Select value={scribeType} onValueChange={setScribeType}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SCRIBE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                {SCRIBE_TYPES.map((tp) => (
+                  <SelectItem key={tp} value={tp}>
+                    {tp}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -310,7 +356,7 @@ function ScribePage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Encounter date</Label>
+              <Label>{t("Encounter date", "วันที่พบแพทย์")}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -321,7 +367,7 @@ function ScribePage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 size-4" />
-                    {date ? format(date, "PP") : "Pick date"}
+                    {date ? format(date, "PP") : t("Pick date", "เลือกวันที่")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -336,7 +382,7 @@ function ScribePage() {
               </Popover>
             </div>
             <div>
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time">{t("Time", "เวลา")}</Label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
@@ -351,7 +397,7 @@ function ScribePage() {
           </div>
 
           <div>
-            <Label htmlFor="codes">Medical codes (ICD-10 / CPT)</Label>
+            <Label htmlFor="codes">{t("Medical codes (ICD-10 / CPT)", "รหัสทางการแพทย์ (ICD-10 / CPT)")}</Label>
             <Input
               id="codes"
               value={codes}
@@ -364,7 +410,7 @@ function ScribePage() {
 
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-display font-semibold">Transcript</h3>
+          <h3 className="font-display font-semibold">{t("Transcript", "ข้อความถอด")}</h3>
           <div className="flex gap-2">
             <input
               type="file"
@@ -378,14 +424,12 @@ function ScribePage() {
               }}
             />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="size-4 mr-1" /> Upload
+              <Upload className="size-4 mr-1" /> {t("Upload", "อัปโหลด")}
             </Button>
           </div>
         </div>
 
-        {audioUrl && (
-          <audio controls src={audioUrl} className="w-full mb-2 h-10 rounded-md" />
-        )}
+        {audioUrl && <audio controls src={audioUrl} className="w-full mb-2 h-10 rounded-md" />}
 
         <Textarea
           value={transcript}
@@ -406,7 +450,7 @@ function ScribePage() {
           ) : (
             <Sparkles className="size-4 mr-2" />
           )}
-          Generate {scribeType}
+          {t("Generate", "สร้าง")} {scribeType}
         </Button>
       </section>
 
@@ -414,7 +458,7 @@ function ScribePage() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-display font-semibold flex items-center gap-2">
-              <FileText className="size-4" /> Generated document
+              <FileText className="size-4" /> {t("Generated document", "เอกสารที่สร้าง")}
             </h3>
           </div>
           <Card className="p-4 max-h-96 overflow-auto whitespace-pre-wrap text-sm leading-relaxed">
@@ -423,26 +467,35 @@ function ScribePage() {
 
           <div className="grid grid-cols-2 gap-2 mt-3">
             <Button variant="outline" onClick={copyDoc}>
-              <Copy className="size-4 mr-1" /> Copy
+              <Copy className="size-4 mr-1" /> {t("Copy", "คัดลอก")}
             </Button>
-            <Button variant="outline" onClick={speakDoc}>
-              <Volume2 className="size-4 mr-1" /> Read aloud
+            <Button
+              variant={speaking ? "default" : "outline"}
+              onClick={toggleSpeak}
+              className={speaking ? "bg-primary text-primary-foreground" : ""}
+            >
+              {speaking ? <VolumeX className="size-4 mr-1" /> : <Volume2 className="size-4 mr-1" />}
+              {speaking ? t("Stop", "หยุด") : t("Read aloud", "อ่านออกเสียง")}
             </Button>
             <Button variant="outline" onClick={downloadDoc}>
-              <Download className="size-4 mr-1" /> Download
+              <Download className="size-4 mr-1" /> {t("Download", "ดาวน์โหลด")}
             </Button>
             <Button variant="outline" onClick={() => setEmailOpen(true)}>
-              <Send className="size-4 mr-1" /> Email
+              <Send className="size-4 mr-1" /> {t("Email", "อีเมล")}
             </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-2">
             <Button onClick={save} disabled={saving} className="bg-gradient-primary text-white">
-              {saving ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Save className="size-4 mr-1" />}
-              Save
+              {saving ? (
+                <Loader2 className="size-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="size-4 mr-1" />
+              )}
+              {t("Save", "บันทึก")}
             </Button>
             <Button variant="ghost" onClick={reset}>
-              <Trash2 className="size-4 mr-1" /> Reset
+              <Trash2 className="size-4 mr-1" /> {t("Reset", "ล้าง")}
             </Button>
           </div>
         </section>
@@ -451,9 +504,9 @@ function ScribePage() {
       <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Email scribe</DialogTitle>
+            <DialogTitle>{t("Email scribe", "อีเมลบันทึก")}</DialogTitle>
           </DialogHeader>
-          <Label htmlFor="rcpt">Recipient email</Label>
+          <Label htmlFor="rcpt">{t("Recipient email", "อีเมลผู้รับ")}</Label>
           <Input
             id="rcpt"
             type="email"
@@ -463,11 +516,11 @@ function ScribePage() {
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEmailOpen(false)}>
-              Cancel
+              {t("Cancel", "ยกเลิก")}
             </Button>
             <Button onClick={sendEmail} disabled={sending || !recipient}>
               {sending ? <Loader2 className="size-4 mr-1 animate-spin" /> : null}
-              Send
+              {t("Send", "ส่ง")}
             </Button>
           </DialogFooter>
         </DialogContent>

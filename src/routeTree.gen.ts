@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedScribeRouteImport } from './routes/_authenticated/scribe'
 import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedScribeRoute = AuthenticatedScribeRouteImport.update({
   id: '/scribe',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/scribe': typeof AuthenticatedScribeRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/scribe': typeof AuthenticatedScribeRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/scribe': typeof AuthenticatedScribeRoute
+  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,8 +97,16 @@ export interface FileRouteTypes {
     | '/profile'
     | '/saved'
     | '/scribe'
+    | '/templates'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/ai-assistant' | '/profile' | '/saved' | '/scribe'
+  to:
+    | '/'
+    | '/login'
+    | '/ai-assistant'
+    | '/profile'
+    | '/saved'
+    | '/scribe'
+    | '/templates'
   id:
     | '__root__'
     | '/'
@@ -99,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/saved'
     | '/_authenticated/scribe'
+    | '/_authenticated/templates'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,6 +147,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/scribe': {
       id: '/_authenticated/scribe'
@@ -166,6 +191,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedScribeRoute: typeof AuthenticatedScribeRoute
+  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -173,6 +199,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedScribeRoute: AuthenticatedScribeRoute,
+  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

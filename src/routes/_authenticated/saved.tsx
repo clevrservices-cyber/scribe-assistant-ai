@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { FileText, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/saved")({ component: SavedPage });
 
@@ -22,6 +23,7 @@ function SavedPage() {
   const [items, setItems] = useState<Scribe[]>([]);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { t } = useLang();
 
   useEffect(() => {
     (async () => {
@@ -52,20 +54,22 @@ function SavedPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-xl font-bold">Saved Scribes</h2>
+      <h2 className="font-display text-xl font-bold">{t("Saved Scribes", "บันทึกที่บันทึกไว้")}</h2>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search patient, date, type, code…"
+          placeholder={t("Search patient, date, type, code…", "ค้นหาผู้ป่วย วันที่ ประเภท รหัส…")}
           className="pl-9 rounded-2xl"
         />
       </div>
 
       {filtered.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
-          {items.length === 0 ? "No scribes saved yet." : "No matches."}
+          {items.length === 0
+            ? t("No scribes saved yet.", "ยังไม่มีบันทึก")
+            : t("No matches.", "ไม่พบรายการ")}
         </Card>
       ) : (
         <ul className="space-y-2">
@@ -81,7 +85,7 @@ function SavedPage() {
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold truncate">
                     {[s.patient_family_name, s.patient_first_name].filter(Boolean).join(", ") ||
-                      "Unnamed patient"}
+                      t("Unnamed patient", "ผู้ป่วยไม่ระบุชื่อ")}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {s.scribe_type} · {s.encounter_date ?? new Date(s.created_at).toLocaleDateString()}

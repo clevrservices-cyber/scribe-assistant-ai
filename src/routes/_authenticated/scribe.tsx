@@ -74,6 +74,7 @@ function ScribePage() {
   const [codes, setCodes] = useState("");
   const [transcript, setTranscript] = useState("");
   const [document, setDocument] = useState("");
+  const [structuredData, setStructuredData] = useState<any>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
@@ -148,6 +149,7 @@ function ScribePage() {
       });
       if (error) throw error;
       setDocument((data as any)?.document ?? "");
+      setStructuredData((data as any)?.structuredData ?? null);
       toast.success(t("Document generated", "สร้างเอกสารแล้ว"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("Generation failed", "การสร้างล้มเหลว"));
@@ -198,6 +200,7 @@ function ScribePage() {
         transcript,
         generated_document: document,
         audio_path: audioPath,
+        structured_data: structuredData,
       });
       if (error) throw error;
       setHasUnsavedDoc(false);
@@ -247,6 +250,7 @@ function ScribePage() {
     setCodes("");
     setTranscript("");
     setDocument("");
+    setStructuredData(null);
     setAudioBlob(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
@@ -444,6 +448,21 @@ function ScribePage() {
           {t("Generate", "สร้าง")} {scribeType}
         </Button>
       </section>
+
+      {structuredData && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-semibold flex items-center gap-2">
+              <Sparkles className="size-4 text-purple-500" /> {t("Extracted Clinical Data", "ข้อมูลทางคลินิกที่สกัดได้")}
+            </h3>
+          </div>
+          <Card className="p-4 max-h-60 overflow-auto bg-slate-50 border-slate-200">
+            <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono">
+              {JSON.stringify(structuredData, null, 2)}
+            </pre>
+          </Card>
+        </section>
+      )}
 
       {document && (
         <section>

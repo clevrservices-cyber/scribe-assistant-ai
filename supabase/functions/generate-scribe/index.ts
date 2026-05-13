@@ -1,8 +1,31 @@
-// Generate a structured medical scribe document from a transcript / notes.
+// Generate a structured medical scribe document from a transcript / notes using a 2-layer architecture.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const EXTRACTION_SYSTEM_PROMPT = `You are a clinical extraction engine. Your job is to extract medical facts from the provided transcript into a strict JSON format. 
+Do not invent facts. If something is missing, omit it or leave it empty.
+
+Output STRICTLY valid JSON matching this structure:
+{
+  "chiefComplaint": "string",
+  "hpi": "string (narrative)",
+  "symptoms": ["string"],
+  "duration": "string",
+  "medications": [{ "name": "string", "dosage": "string", "frequency": "string" }],
+  "allergies": ["string"],
+  "pastMedicalHistory": ["string"],
+  "pastSurgicalHistory": ["string"],
+  "familyHistory": ["string"],
+  "socialHistory": ["string"],
+  "vitals": { "bloodPressure": "string", "heartRate": "string", "temperature": "string" },
+  "physicalExamFindings": ["string"],
+  "assessment": ["string"],
+  "plan": ["string"]
+}
+
+Output ONLY valid JSON without Markdown blocks if possible (or at least valid parsable JSON).`;
 
 const SCRIBE_TEMPLATES: Record<string, string> = {
   "SOAP Note":
@@ -44,66 +67,71 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const tmpl = SCRIBE_TEMPLATES[scribeType] ?? SCRIBE_TEMPLATES["Custom/Comprehensive"];
+    const callAI = async (system: string, user: string, format: "json_object" | "text" = "text") => {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          response_format: format === "json_object" ? { type: "json_object" } : undefined,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      });
+      if (!resp.ok) {
+        throw new Error(`AI error: ${resp.status} ${await resp.text()}`);
+      }
+      const data = await resp.json();
+      return data?.choices?.[0]?.message?.content ?? "";
+    };
 
-    const system = `You are an expert medical scribe assistant. Produce a polished, professional clinical document in clean Markdown.
+    // LAYER 2: EXTRACT STRUCTURED JSON (Clinical Memory)
+    console.log("Extracting clinical data...");
+    const rawJsonString = await callAI(EXTRACTION_SYSTEM_PROMPT, transcript, "json_object");
+    
+    // Clean up potential markdown formatting in JSON response
+    let cleanJson = rawJsonString;
+    if (cleanJson.startsWith("\`\`\`json")) {
+      cleanJson = cleanJson.replace(/^\`\`\`json\n/, "").replace(/\n\`\`\`$/, "");
+    }
+    
+    let structuredData = {};
+    try {
+      structuredData = JSON.parse(cleanJson);
+    } catch (e) {
+      console.warn("Failed to parse AI JSON output, returning empty structured data", e);
+    }
+
+    // LAYER 3: GENERATE NOTE USING ONLY THE STRUCTURED DATA
+    const tmpl = SCRIBE_TEMPLATES[scribeType] ?? SCRIBE_TEMPLATES["Custom/Comprehensive"];
+    const generationSystemPrompt = `You are an expert medical scribe assistant. Produce a polished, professional clinical document in clean Markdown.
 
 Document type: ${scribeType}
 ${tmpl}
 
-Always include the following sections in addition to the type-specific format above, when content allows:
-- **Patient Profile**
-- **Chief Complaint / HPI**
-- **Review of Systems / Examination**
-- **Tests & Investigations**
-- **Assessment & Plan**
-- **Medications & Allergies**
+RULES:
+- Base the document ONLY on the provided structured clinical data.
+- If a section has no information, write "Not documented." 
+- Do not invent clinical facts. 
+- Use precise medical language. 
+- Render the final document only — no preamble.`;
 
-If a section has no information, write "Not documented." Do not invent clinical facts. Use precise medical language. Render the final document only — no preamble.`;
-
-    const userMsg = `Patient: ${patientFamilyName ?? ""}, ${patientFirstName ?? ""}
+    const generationUserMsg = `Patient: ${patientFamilyName ?? ""}, ${patientFirstName ?? ""}
 Encounter date/time: ${encounterDate ?? ""} ${encounterTime ?? ""}
 Suggested medical codes (ICD-10-CM / CPT): ${medicalCodes ?? "none provided"}
 
-Encounter transcript / notes:
-"""
-${transcript}
-"""`;
+STRUCTURED CLINICAL DATA:
+${JSON.stringify(structuredData, null, 2)}`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userMsg },
-        ],
-      }),
-    });
+    console.log("Generating final note...");
+    const document = await callAI(generationSystemPrompt, generationUserMsg, "text");
 
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error("AI gateway error", resp.status, t);
-      if (resp.status === 429)
-        return new Response(JSON.stringify({ error: "Rate limit, try again shortly." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      if (resp.status === 402)
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      throw new Error(`AI error: ${resp.status}`);
-    }
-
-    const data = await resp.json();
-    const document = data?.choices?.[0]?.message?.content ?? "";
-    return new Response(JSON.stringify({ document }), {
+    return new Response(JSON.stringify({ document, structuredData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

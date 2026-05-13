@@ -54,8 +54,9 @@ export function AppFooter() {
         <div className="mx-auto max-w-2xl relative h-20 px-4">
           <button
             onClick={() => {
-              goNew();
-              if (loc.pathname === "/scribe" && hasUnsavedDoc) return;
+              if (loc.pathname !== "/scribe") {
+                navigate({ to: "/scribe" });
+              }
               toggleRecording();
             }}
             aria-label={isRecording ? t("Stop recording", "หยุดบันทึก") : t("Start recording", "เริ่มบันทึก")}
